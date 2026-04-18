@@ -23,7 +23,7 @@ S3_ACCESS_KEY=minio
 S3_SECRET_KEY=minio123
 S3_BUCKET=music
 S3_PREFIX=tracks
-S3_ENDPOINT=http://localhost:9000
+S3_ENDPOINT=http://localhost:9002
 
 SECRET_KEY=your-secret-key
 ALGORITHM=HS256
@@ -31,12 +31,19 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 ```
 
-### 3. Run with Docker
+### 3. One-Command Local Startup on Windows
+```powershell
+.\start-dev.ps1
+```
+
+This starts PostgreSQL, MinIO, the backend, and the frontend for local development.
+
+### 4. Run with Docker
 ```bash
 docker compose up --build
 ```
 
-### 4. Manual Development Setup
+### 5. Manual Development Setup
 
 **Backend:**
 ```bash
