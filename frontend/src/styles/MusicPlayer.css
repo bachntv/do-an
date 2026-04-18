@@ -129,13 +129,13 @@
   margin: 0 12px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(168, 230, 207, 0.4);
+  box-shadow: 0 4px 15px rgba(230, 221, 168, 0.714);
   transition: all var(--transition-normal);
 }
 
 .play-button:hover {
   transform: scale(1.08);
-  box-shadow: 0 6px 20px rgba(168, 230, 207, 0.6);
+  box-shadow: 0 6px 20px rgba(227, 230, 168, 0.775);
 }
 
 /* Progress Bar */
