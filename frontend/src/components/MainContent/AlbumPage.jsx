@@ -341,7 +341,7 @@ const AlbumPage = () => {
                 <td className="col-duration">{track.duration}</td>
                 <td className="col-like">
                   <button className="add-btn" onClick={() => toggleLike(track.id)}>
-                    {isLiked ? <FaHeart color="#1DB954" /> : <FaRegHeart />}
+                    {isLiked ? <FaHeart color="#b09601" /> : <FaRegHeart />}
                   </button>
                 </td>
                 <td className="track-options col-option">

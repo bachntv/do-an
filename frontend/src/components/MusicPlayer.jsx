@@ -133,7 +133,7 @@ const MusicPlayer = ({
         </div>
 
         <button className="icon-button" onClick={() => onToggleLike(currentSong?.id)}>
-          {isLiked ? <FaHeart color="#1DB954" /> : <FaRegHeart />}
+          {isLiked ? <FaHeart color="#b09601" /> : <FaRegHeart />}
         </button>
       </div>
 
@@ -178,7 +178,7 @@ const MusicPlayer = ({
               }
             }}
             style={{
-              background: `linear-gradient(to right, #1db954 0%, #1db954 ${volume}%, #444 ${volume}%, #444 100%)`,
+              background: `linear-gradient(to right, #b09601 0%, #b09601 ${volume}%, #444 ${volume}%, #444 100%)`,
             }}
           />
         </div>

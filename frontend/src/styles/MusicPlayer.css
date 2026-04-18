@@ -9,7 +9,7 @@
   height: 90px;
   padding: 0 24px;
   color: var(--text-primary);
-  background: linear-gradient(135deg, rgba(168, 230, 207, 0.3), rgba(184, 212, 227, 0.3));
+  background: linear-gradient(135deg, rgba(230, 228, 168, 0.738), rgba(184, 212, 227, 0.3));
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   font-size: 14px;

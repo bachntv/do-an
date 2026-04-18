@@ -106,10 +106,12 @@ const Navbar = ({ username, profilePicture }) => {
   return (
     <header className="navbar">
       <div className="nav-left">
-        <button className="home-b" onClick={() => navigate("/")}>
-          <FaHome /> 
-        </button>
-      </div>
+  <img src="/my-logo.png" alt="App Logo" className="app-logo" />
+  <button className="home-b" onClick={() => navigate("/")}>
+    <FaHome />
+  </button>
+</div>
+
 
       <div className="nav-center">
         <div className="search-group">
