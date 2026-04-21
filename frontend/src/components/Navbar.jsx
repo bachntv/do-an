@@ -3,6 +3,7 @@ import "../styles/Navbar.css";
 import { FaBell, FaUserCircle, FaChevronDown, FaHome, FaSearch, FaMicrophone } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import { jwtDecode } from "jwt-decode"; 
+import { authFetch } from "../utils/authFetch";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8001";
 
@@ -81,20 +82,21 @@ const Navbar = ({ username, profilePicture }) => {
       const formData = new FormData();
       formData.append('prompt', query);
 
-      const res = await fetch(`${API_BASE}/api/music/ask`, {
+      const res = await authFetch(`${API_BASE}/api/music/ask`, {
         method: 'POST',
         body: formData
       });
-      // const res = await fetch(`http://localhost:8000/api/music/ask`, {
-      //   method: 'POST',
-      //   body: formData
-      // });
-      
-      
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Failed to get emotion recommendations");
+      }
+
       const data = await res.json();
       navigate(`/search?query=${encodeURIComponent(query)}&filter_by=emotion&results=${encodeURIComponent(JSON.stringify(data))}`);
     } catch (err) {
       console.error("Failed to get emotion-based recommendations:", err);
+      alert(err.message || "Failed to get emotion-based recommendations");
     }
   };
 

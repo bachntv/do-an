@@ -15,6 +15,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     birthdate: date
     gender: Optional[str]
+    account_type: Optional[str] = "free"
 
     class Config:
         orm_mode = True
@@ -28,3 +29,4 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr]
     birthdate: Optional[date]
     gender: Optional[str]
+    account_type: Optional[str] = None

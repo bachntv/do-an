@@ -15,3 +15,4 @@ class User(Base):
     birthdate = Column(Date, nullable=False)
     gender = Column(String, nullable=True)
     roles = Column(String, nullable=False, default="user")
+    account_type = Column(String, nullable=False, default="free")

@@ -5,12 +5,14 @@ import "../styles/MainContent/Settings.css";
 import { authFetch } from "../utils/authFetch";
 
 const API_BASE = (process.env.REACT_APP_API_URL || "http://localhost:8001") + "/api/user";
-const tabs = ["Account", "Security"];
+const tabs = ["Account", "Security", "Billing"];
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState("Account");
   const [formData, setFormData] = useState({});
   const [passwordForm, setPasswordForm] = useState({ current_password: "", new_password: "" });
+  const [billing, setBilling] = useState(null);
+  const [billingLoading, setBillingLoading] = useState(false);
   const navigate = useNavigate();
 
   const token = localStorage.getItem("token");
@@ -26,6 +28,25 @@ const SettingsPage = () => {
       .then(data => setFormData(data))
       .catch(err => console.error("Failed to load user:", err));
   }, [token]); // ← Added empty dependency array here
+
+  const loadBilling = () => {
+    setBillingLoading(true);
+    authFetch(`${API_BASE}/billing`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => res.json())
+      .then(data => setBilling(data))
+      .catch(err => console.error("Failed to load billing:", err))
+      .finally(() => setBillingLoading(false));
+  };
+
+  useEffect(() => {
+    if (activeTab === "Billing") {
+      loadBilling();
+    }
+  }, [activeTab, token]);
 
   const handleChange = (e, field) => {
     setFormData({ ...formData, [field]: e.target.value });
@@ -63,6 +84,44 @@ const SettingsPage = () => {
       .then(() => {
         alert("🔒 Password changed");
         setPasswordForm({ current_password: "", new_password: "" });
+      })
+      .catch((err) => alert(err.message));
+  };
+
+  const handleSubscribe = (planCode) => {
+    authFetch(`${API_BASE}/billing/subscribe`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ plan_code: planCode, payment_method: "manual" }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Failed to change plan");
+        const existingUser = JSON.parse(localStorage.getItem("user") || "{}");
+        localStorage.setItem("user", JSON.stringify({ ...existingUser, account_type: data.account_type }));
+        alert(`✅ ${data.message}`);
+        loadBilling();
+      })
+      .catch((err) => alert(err.message));
+  };
+
+  const handleDowngrade = () => {
+    authFetch(`${API_BASE}/billing/cancel`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Failed to downgrade plan");
+        const existingUser = JSON.parse(localStorage.getItem("user") || "{}");
+        localStorage.setItem("user", JSON.stringify({ ...existingUser, account_type: data.account_type }));
+        alert(`✅ ${data.message}`);
+        loadBilling();
       })
       .catch((err) => alert(err.message));
   };
@@ -159,6 +218,83 @@ const SettingsPage = () => {
 
             <button type="submit" className="primary-button">Change Password</button>
           </form>
+        )}
+
+        {activeTab === "Billing" && (
+          <div className="section form-section">
+            {billingLoading && <p>Loading billing information...</p>}
+
+            {!billingLoading && billing?.current_plan && (
+              <>
+                <div style={{ marginBottom: "24px" }}>
+                  <h3>Current Plan</h3>
+                  <p><strong>{billing.current_plan.plan.name}</strong></p>
+                  <p>{billing.current_plan.plan.description}</p>
+                  <p>Price: {billing.current_plan.plan.price_monthly.toLocaleString("vi-VN")} VND / month</p>
+                  <p>Playlist limit: {billing.current_plan.plan.max_playlists}</p>
+                  <p>Emotion recommendations: {billing.current_plan.plan.emotion_recommendations ? "Enabled" : "Premium only"}</p>
+                  {billing.current_plan.plan.code !== "free" && (
+                    <button type="button" className="primary-button" onClick={handleDowngrade}>
+                      Downgrade to Free
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ marginBottom: "24px" }}>
+                  <h3>Available Plans</h3>
+                  {billing.available_plans.map((plan) => (
+                    <div
+                      key={plan.code}
+                      style={{
+                        border: "1px solid rgba(255,255,255,0.2)",
+                        borderRadius: "12px",
+                        padding: "16px",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <p><strong>{plan.name}</strong></p>
+                      <p>{plan.description}</p>
+                      <p>{plan.price_monthly.toLocaleString("vi-VN")} VND / month</p>
+                      <p>Playlist limit: {plan.max_playlists}</p>
+                      <p>Emotion recommendations: {plan.emotion_recommendations ? "Included" : "Not included"}</p>
+                      <button
+                        type="button"
+                        className="primary-button"
+                        disabled={billing.current_plan.plan.code === plan.code}
+                        onClick={() => handleSubscribe(plan.code)}
+                      >
+                        {billing.current_plan.plan.code === plan.code ? "Current Plan" : `Choose ${plan.name}`}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <h3>Recent Payments</h3>
+                  {billing.recent_payments.length === 0 ? (
+                    <p>No payments yet.</p>
+                  ) : (
+                    billing.recent_payments.map((payment) => (
+                      <div
+                        key={payment.id}
+                        style={{
+                          borderBottom: "1px solid rgba(255,255,255,0.15)",
+                          padding: "10px 0",
+                        }}
+                      >
+                        <p>
+                          <strong>{payment.amount.toLocaleString("vi-VN")} {payment.currency}</strong> - {payment.status}
+                        </p>
+                        <p>Method: {payment.provider}</p>
+                        <p>{payment.note}</p>
+                        <p>{payment.created_at}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         )}
       </main>
     </div>

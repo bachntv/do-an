@@ -13,6 +13,7 @@ from models.playlist import Playlist
 from models.playlist_user import PlaylistUser
 from schemas.user import UserCreate, UserResponse, UserLogin
 from utils.password import hash_password, verify_password
+from utils.billing import ensure_user_has_subscription, get_subscription_plan
 
 from dotenv import load_dotenv
 
@@ -107,6 +108,11 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)  # now new_user.id is ready
+    subscription = ensure_user_has_subscription(db, new_user)
+    plan = get_subscription_plan(db, subscription)
+    new_user.account_type = plan.code
+    db.commit()
+    db.refresh(new_user)
 
     # Create default playlist
     liked_playlist = Playlist(
@@ -147,9 +153,15 @@ def signin(credentials: UserLogin, response: Response, db: Session = Depends(get
     if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid username/email or password")
 
+    subscription = ensure_user_has_subscription(db, user)
+    plan = get_subscription_plan(db, subscription)
+    user.account_type = plan.code
+    db.commit()
+
     access_token = create_access_token(data={
         "sub": str(user.id),
-        "roles": user.roles.split(",") if user.roles else ["user"]
+        "roles": user.roles.split(",") if user.roles else ["user"],
+        "account_type": user.account_type,
     })
     refresh_token = create_refresh_token(data={"userId": str(user.id)})
     response.set_cookie(
@@ -170,6 +182,7 @@ def signin(credentials: UserLogin, response: Response, db: Session = Depends(get
             "username": user.username,
             "email": user.email,
             "roles": user.roles,
+            "account_type": user.account_type,
         },
     }
 
@@ -192,9 +205,15 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
 
+    subscription = ensure_user_has_subscription(db, user)
+    plan = get_subscription_plan(db, subscription)
+    user.account_type = plan.code
+    db.commit()
+
     access_token = create_access_token(data={
         "sub": str(user.id),
-        "roles": user.roles.split(",") if user.roles else ["user"]
+        "roles": user.roles.split(",") if user.roles else ["user"],
+        "account_type": user.account_type,
     })
     return {
         "access_token": access_token,
@@ -204,6 +223,7 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
             "username": user.username,
             "email": user.email,
             "roles": user.roles,
+            "account_type": user.account_type,
         },
     }
 

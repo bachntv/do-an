@@ -26,6 +26,7 @@ import random
 from models.user import User
 from .auth_routes import get_current_user
 import requests
+from utils.billing import ensure_user_has_subscription, get_subscription_plan
 
 ASIA_TIMEZONE = ZoneInfo("Asia/Bangkok")
 
@@ -259,6 +260,19 @@ async def create_playlist(
     current_user: User = Depends(get_current_user)
 ):
     user_id = current_user.id
+    subscription = ensure_user_has_subscription(db, current_user)
+    plan = get_subscription_plan(db, subscription)
+    current_playlist_count = (
+        db.query(PlaylistUser)
+        .filter(PlaylistUser.user_id == user_id, PlaylistUser.type == "playlist")
+        .count()
+    )
+    if current_playlist_count >= plan.max_playlists:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Your {plan.name} plan supports up to {plan.max_playlists} playlists only."
+        )
+
     playlist_id = str(uuid4())
     cover_url = None
 
@@ -1059,6 +1073,11 @@ def get_emo_recommendations(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    subscription = ensure_user_has_subscription(db, current_user)
+    plan = get_subscription_plan(db, subscription)
+    if not plan.emotion_recommendations:
+        raise HTTPException(status_code=403, detail="Emotion recommendations are available for Premium users only.")
+
     recommended_track_ids = recommender.get_emo_recommendations(current_user.id, emo)
     if not recommended_track_ids:
         return []
@@ -1146,7 +1165,16 @@ import google.generativeai as genai
 genai.configure(api_key=API_KEY)
 
 @router.post("/ask")
-async def ask_gemini(prompt: str = Form(...)):
+async def ask_gemini(
+    prompt: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    subscription = ensure_user_has_subscription(db, current_user)
+    plan = get_subscription_plan(db, subscription)
+    if not plan.emotion_recommendations:
+        raise HTTPException(status_code=403, detail="Emotion recommendations are available for Premium users only.")
+
     user_prompt = prompt.strip()
 
     if not user_prompt:
