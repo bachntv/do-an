@@ -14,6 +14,7 @@ from models.playlist_user import PlaylistUser
 from schemas.user import UserCreate, UserResponse, UserLogin
 from utils.password import hash_password, verify_password
 from utils.billing import ensure_user_has_subscription, get_subscription_plan
+from utils.activity import log_activity
 
 from dotenv import load_dotenv
 
@@ -135,6 +136,7 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
 
     db.add(playlist_user)
     db.commit()
+    log_activity(db, new_user.id, "signup", "user", new_user.id, f"Created account with {plan.name} plan")
 
     return new_user
 
@@ -157,6 +159,7 @@ def signin(credentials: UserLogin, response: Response, db: Session = Depends(get
     plan = get_subscription_plan(db, subscription)
     user.account_type = plan.code
     db.commit()
+    log_activity(db, user.id, "signin", "user", user.id, f"Signed in with {plan.name} plan")
 
     access_token = create_access_token(data={
         "sub": str(user.id),
@@ -209,6 +212,7 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
     plan = get_subscription_plan(db, subscription)
     user.account_type = plan.code
     db.commit()
+    log_activity(db, user.id, "refresh_token", "user", user.id, f"Refreshed session as {plan.name}")
 
     access_token = create_access_token(data={
         "sub": str(user.id),

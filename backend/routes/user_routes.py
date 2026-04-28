@@ -12,6 +12,7 @@ from schemas.user import UserUpdate
 from schemas.billing import BillingOverview, PlanResponse, SubscriptionSummary, PaymentResponse, SubscribeRequest
 from .auth_routes import get_current_user
 from utils.password import verify_password, hash_password
+from utils.activity import log_activity
 from utils.billing import (
     ensure_user_has_subscription,
     get_subscription_plan,
@@ -64,6 +65,7 @@ def update_my_profile(update: UserUpdate, db: Session = Depends(get_db), current
 
     db.commit()
     db.refresh(user)
+    log_activity(db, user.id, "update_profile", "user", user.id, "Updated account profile")
     return {"message": "Profile updated successfully"}
 
 # Change password
@@ -78,6 +80,7 @@ def change_password(payload: PasswordChange, db: Session = Depends(get_db), curr
 
     user.hashed_password = hash_password(payload.new_password)
     db.commit()
+    log_activity(db, user.id, "change_password", "user", user.id, "Changed account password")
     return {"message": "Password changed successfully"}
 
 
@@ -125,6 +128,14 @@ def subscribe_plan(payload: SubscribeRequest, db: Session = Depends(get_db), cur
     subscription, plan, payment = upgrade_subscription(db, current_user, payload.plan_code, payload.payment_method or "manual")
     current_user.account_type = plan.code
     db.commit()
+    log_activity(
+        db,
+        current_user.id,
+        "subscribe_plan",
+        "plan",
+        plan.id,
+        f"Subscribed to {plan.name} via {payload.payment_method or 'manual'}",
+    )
     return {
         "message": f"Subscribed to {plan.name}",
         "account_type": current_user.account_type,
@@ -139,6 +150,7 @@ def downgrade_to_free(db: Session = Depends(get_db), current_user: User = Depend
     plan = get_subscription_plan(db, subscription)
     current_user.account_type = plan.code
     db.commit()
+    log_activity(db, current_user.id, "downgrade_plan", "plan", plan.id, "Downgraded to Free plan")
     return {
         "message": "Subscription downgraded to Free",
         "account_type": current_user.account_type,

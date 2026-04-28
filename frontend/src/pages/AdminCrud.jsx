@@ -16,6 +16,8 @@ const AdminCrud = () => {
   const [editingId, setEditingId] = useState(null);
   const [primaryKey, setPrimaryKey] = useState(null);
   const [overview, setOverview] = useState({});
+  const [dashboardMetrics, setDashboardMetrics] = useState({});
+  const [activityLogs, setActivityLogs] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -58,6 +60,34 @@ const AdminCrud = () => {
       .catch((err) => {
         console.error("Failed to fetch overview:", err);
         setOverview({});
+      });
+  }, []);
+
+  useEffect(() => {
+    authFetch(`${API_BASE}/api/database/dashboard-metrics`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    })
+      .then((res) => res.ok ? res.json() : Promise.reject(res))
+      .then(setDashboardMetrics)
+      .catch((err) => {
+        console.error("Failed to fetch dashboard metrics:", err);
+        setDashboardMetrics({});
+      });
+  }, []);
+
+  useEffect(() => {
+    authFetch(`${API_BASE}/api/database/activity-logs`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    })
+      .then((res) => res.ok ? res.json() : Promise.reject(res))
+      .then(setActivityLogs)
+      .catch((err) => {
+        console.error("Failed to fetch activity logs:", err);
+        setActivityLogs([]);
       });
   }, []);
 
@@ -228,6 +258,60 @@ const AdminCrud = () => {
               <div className="card">
                 <h3>🎤 Artist</h3>
                 <p>{overview.artists ?? "..."}</p>
+              </div>
+              <div className="card">
+                <h3>💳 Payments</h3>
+                <p>{dashboardMetrics.total_payments ?? "..."}</p>
+              </div>
+              <div className="card">
+                <h3>💰 Revenue</h3>
+                <p>{dashboardMetrics.total_revenue?.toLocaleString?.("vi-VN") ?? dashboardMetrics.total_revenue ?? "..."}</p>
+              </div>
+              <div className="card">
+                <h3>🆓 Free Users</h3>
+                <p>{dashboardMetrics.free_users ?? "..."}</p>
+              </div>
+              <div className="card">
+                <h3>⭐ Premium Users</h3>
+                <p>{dashboardMetrics.premium_users ?? "..."}</p>
+              </div>
+              <div className="card">
+                <h3>📄 Active Subs</h3>
+                <p>{dashboardMetrics.active_subscriptions ?? "..."}</p>
+              </div>
+            </div>
+
+            <div style={{ marginTop: "32px" }}>
+              <h2>🕒 Recent Activity</h2>
+              <div className="data-table" style={{ overflowX: "auto" }}>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Action</th>
+                      <th>Target</th>
+                      <th>Details</th>
+                      <th>Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityLogs.length === 0 ? (
+                      <tr>
+                        <td colSpan="5">No activity recorded yet.</td>
+                      </tr>
+                    ) : (
+                      activityLogs.map((log) => (
+                        <tr key={log.id}>
+                          <td>{log.username || "Unknown"}</td>
+                          <td>{log.action}</td>
+                          <td>{[log.target_type, log.target_id].filter(Boolean).join(": ") || "-"}</td>
+                          <td>{log.details || "-"}</td>
+                          <td>{log.created_at || "-"}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

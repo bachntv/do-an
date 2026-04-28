@@ -27,6 +27,7 @@ from models.user import User
 from .auth_routes import get_current_user
 import requests
 from utils.billing import ensure_user_has_subscription, get_subscription_plan
+from utils.activity import log_activity
 
 ASIA_TIMEZONE = ZoneInfo("Asia/Bangkok")
 
@@ -301,6 +302,7 @@ async def create_playlist(
     db.add(playlist)
     db.add(PlaylistUser(user_id=user_id, playlist_id=playlist_id, type="playlist"))
     db.commit()
+    log_activity(db, user_id, "create_playlist", "playlist", playlist_id, f"Created playlist: {name}")
 
     return {
         "id": playlist_id,

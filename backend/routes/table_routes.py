@@ -154,6 +154,75 @@ def get_overview():
         raise HTTPException(status_code=500, detail=f"Overview failed: {str(e)}")
 
 
+@router.get("/dashboard-metrics")
+def get_dashboard_metrics():
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+
+        metrics = {}
+        cur.execute('SELECT COUNT(*) FROM public."users"')
+        metrics["total_users"] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM public.users WHERE account_type = 'free'")
+        metrics["free_users"] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM public.users WHERE account_type = 'premium'")
+        metrics["premium_users"] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM public.subscriptions WHERE status = 'active'")
+        metrics["active_subscriptions"] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM public.payments")
+        metrics["total_payments"] = cur.fetchone()[0]
+
+        cur.execute("SELECT COALESCE(SUM(amount), 0) FROM public.payments WHERE status = 'paid'")
+        metrics["total_revenue"] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM public.playlists")
+        metrics["total_playlists"] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM public.songs")
+        metrics["total_songs"] = cur.fetchone()[0]
+
+        cur.close()
+        conn.close()
+        return metrics
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Dashboard metrics failed: {str(e)}")
+
+
+@router.get("/activity-logs")
+def get_recent_activity_logs():
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT a.id, a.action, a.target_type, a.target_id, a.details, a.created_at, u.username
+            FROM public.activity_logs a
+            LEFT JOIN public.users u ON u.id = a.user_id
+            ORDER BY a.created_at DESC
+            LIMIT 20
+        """)
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return [
+            {
+                "id": row[0],
+                "action": row[1],
+                "target_type": row[2],
+                "target_id": row[3],
+                "details": row[4],
+                "created_at": row[5].isoformat() if row[5] else None,
+                "username": row[6],
+            }
+            for row in rows
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Activity logs failed: {str(e)}")
+
+
 
 def get_primary_key(table_name: str):
     conn = get_conn()

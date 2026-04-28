@@ -10,6 +10,7 @@ from models.album_artists import AlbumArtist
 from models.playlist import Playlist
 from models.playlist_user import PlaylistUser
 from models.playlist_tracks import PlaylistTracks
+from models.activity_log import ActivityLog
 from models.plan import Plan
 from models.subscription import Subscription
 from models.payment import Payment
